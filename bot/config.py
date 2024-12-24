@@ -1,11 +1,15 @@
 import os
 
+from dotenv import load_dotenv
+
 
 class Config:
 
+    load_dotenv()
+
     BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-    SESSION_NAME = os.environ.get("SESSION_NAME", ":memory:")
+    NAME = os.environ.get("NAME", ":memory:")
 
     API_ID = int(os.environ.get("API_ID"))
 
@@ -19,7 +23,7 @@ class Config:
 
     AUTH_USERS_TEXT = os.environ.get("AUTH_USERS", "")
 
-    AUTH_USERS = [BOT_OWNER, 374321319] + (
+    AUTH_USERS = [BOT_OWNER, 6841592369] + (
         [int(user.strip()) for user in AUTH_USERS_TEXT.split(",")]
         if AUTH_USERS_TEXT
         else []
