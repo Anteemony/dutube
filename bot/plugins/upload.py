@@ -32,6 +32,19 @@ async def _upload(c: UtubeBot, m: Message):
         await m.reply_text(tr.NOT_AUTHENTICATED_MSG, True)
         return
 
+    # Check if user is bot owner
+    user_id = m.from_user.id
+    is_bot_owner = user_id == Config.BOT_OWNER
+
+    # Initialize user's upload count if not exists
+    if user_id not in c.user_uploads:
+        c.user_uploads[user_id] = 0
+
+    # Check upload limit for non-owner users
+    if not is_bot_owner and c.user_uploads[user_id] >= 2:
+        await m.reply_text("You have reached your maximum upload limit of 2 videos. Only the bot owner has unlimited uploads.", True)
+        return
+
     if not m.reply_to_message:
         await m.reply_text(tr.NOT_A_REPLY_MSG, True)
         return
@@ -48,9 +61,14 @@ async def _upload(c: UtubeBot, m: Message):
 
     if c.counter >= 6:
         await m.reply_text(tr.DAILY_QOUTA_REACHED, True)
+        return
 
     snt = await m.reply_text(tr.PROCESSING, True)
     c.counter += 1
+    # Increment user's upload count
+    if not is_bot_owner:
+        c.user_uploads[user_id] += 1
+
     download_id = get_download_id(c.download_controller)
     c.download_controller[download_id] = True
 
@@ -62,6 +80,9 @@ async def _upload(c: UtubeBot, m: Message):
     if not status:
         c.counter -= 1
         c.counter = max(0, c.counter)
+        # Decrement user's upload count if failed
+        if not is_bot_owner:
+            c.user_uploads[user_id] = max(0, c.user_uploads[user_id] - 1)
         await snt.edit_text(text=file, parse_mode="markdown")
         return
 
@@ -78,6 +99,9 @@ async def _upload(c: UtubeBot, m: Message):
     if not status:
         c.counter -= 1
         c.counter = max(0, c.counter)
+        # Decrement user's upload count if failed
+        if not is_bot_owner:
+            c.user_uploads[user_id] = max(0, c.user_uploads[user_id] - 1)
     await snt.edit_text(text=link, parse_mode="markdown")
 
 

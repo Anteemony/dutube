@@ -73,3 +73,105 @@ async def _save_auth_data(c: UtubeBot, m: Message) -> None:
     except Exception as e:
         log.error(e, exc_info=True)
         await m.reply_text(tr.AUTH_FAILED_MSG.format(e), True)
+
+
+@UtubeBot.on_message(
+    Filters.private
+    & Filters.incoming
+    & Filters.command("add_user")
+    & Filters.user(Config.BOT_OWNER)  # Only bot owner can add users
+)
+async def _add_user(c: UtubeBot, m: Message) -> None:
+    if len(m.command) != 2:
+        await m.reply_text("Please provide a user ID.\nUsage: `/add_user 123456789`", True)
+        return
+
+    try:
+        user_id = int(m.command[1])
+
+        # Check if user is already authorized
+        if user_id in Config.AUTH_USERS:
+            await m.reply_text("This user is already authorized!", True)
+            return
+
+        # Add user to AUTH_USERS list
+        Config.AUTH_USERS.append(user_id)
+
+        await m.reply_text(f"Successfully added user {user_id} to authorized users list.", True)
+        log.info(f"New user {user_id} added to AUTH_USERS by {m.from_user.id}")
+
+    except ValueError:
+        await m.reply_text("Please provide a valid user ID (numbers only).", True)
+    except Exception as e:
+        log.error(e, exc_info=True)
+        await m.reply_text(f"An error occurred: {str(e)}", True)
+
+
+@UtubeBot.on_message(
+    Filters.private
+    & Filters.incoming
+    & Filters.command("list_users")
+    & Filters.user(Config.BOT_OWNER)
+)
+async def _list_users(c: UtubeBot, m: Message) -> None:
+    try:
+        auth_users = Config.AUTH_USERS
+        if not auth_users:
+            await m.reply_text("No authorized users found.", True)
+            return
+
+        users_text = "Authorized Users:\n\n"
+        for user_id in auth_users:
+            try:
+                user = await c.get_users(user_id)
+                name = user.first_name
+                if user.last_name:
+                    name += f" {user.last_name}"
+                username = f"@{user.username}" if user.username else "No username"
+                users_text += f"• ID: `{user_id}`\n  Name: {name}\n  Username: {username}\n\n"
+            except Exception as e:
+                users_text += f"• ID: `{user_id}` (Unable to fetch user info)\n\n"
+
+        await m.reply_text(users_text, True)
+
+    except Exception as e:
+        log.error(e, exc_info=True)
+        await m.reply_text(f"An error occurred: {str(e)}", True)
+
+
+@UtubeBot.on_message(
+    Filters.private
+    & Filters.incoming
+    & Filters.command("remove_user")
+    & Filters.user(Config.BOT_OWNER)
+)
+async def _remove_user(c: UtubeBot, m: Message) -> None:
+    if len(m.command) != 2:
+        await m.reply_text("Please provide a user ID.\nUsage: `/remove_user 123456789`", True)
+        return
+
+    try:
+        user_id = int(m.command[1])
+
+        # Don't allow removing the bot owner
+        if user_id == Config.BOT_OWNER:
+            await m.reply_text("Cannot remove the bot owner!", True)
+            return
+
+        # Check if user exists in AUTH_USERS
+        if user_id not in Config.AUTH_USERS:
+            await m.reply_text("This user is not in the authorized users list!", True)
+            return
+
+        # Remove user from AUTH_USERS list
+        Config.AUTH_USERS.remove(user_id)
+
+        await m.reply_text(f"Successfully removed user {user_id} from authorized users list.", True)
+        log.info(f"User {user_id} removed from AUTH_USERS by {m.from_user.id}")
+
+    except ValueError:
+        await m.reply_text("Please provide a valid user ID (numbers only).", True)
+    except Exception as e:
+        log.error(e, exc_info=True)
+        await m.reply_text(f"An error occurred: {str(e)}", True)
+
