@@ -23,7 +23,7 @@ class Config:
 
     AUTH_USERS_TEXT = os.environ.get("AUTH_USERS", "")
 
-    AUTH_USERS = [BOT_OWNER, 6841592369] + (
+    AUTH_USERS = [BOT_OWNER] + (
         [int(user.strip()) for user in AUTH_USERS_TEXT.split(",")]
         if AUTH_USERS_TEXT
         else []
